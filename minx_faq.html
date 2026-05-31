@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinX — FAQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root[data-theme="dark"] {
+            --bg: #080c10; --panel: #0d1117; --card: #111822; --card2: #161e2a;
+            --border: rgba(255,255,255,0.07); --border-glow: rgba(0,136,255,0.25);
+            --text: #e8edf5; --text2: #7a8fa8; --text3: #3d4f63;
+            --accent: #0088ff; --accent-dim: rgba(0,136,255,0.12);
+        }
+        :root[data-theme="light"] {
+            --bg: #f0f4f8; --panel: #ffffff; --card: #f7fafd; --card2: #edf1f7;
+            --border: rgba(0,0,0,0.08); --border-glow: rgba(0,102,204,0.2);
+            --text: #0d1520; --text2: #5a6e84; --text3: #a0b0c0;
+            --accent: #0066cc; --accent-dim: rgba(0,102,204,0.1);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 4px; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,136,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,136,255,0.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none; z-index: 0;
+        }
+
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .header::after {
+            content: '';
+            position: absolute; bottom: -1px;
+            left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.3;
+        }
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            letter-spacing: 6px;
+            color: var(--text);
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-badge {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 8px; font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--accent);
+            background: var(--accent-dim);
+            border: 1px solid var(--border-glow);
+            padding: 2px 6px; border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .header-right { display: flex; gap: 10px; align-items: center; }
+        .theme-toggle {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 44px; height: 24px;
+            cursor: pointer; position: relative;
+            transition: border-color 0.3s;
+        }
+        .theme-toggle:hover { border-color: var(--accent); }
+        .theme-toggle::after {
+            content: '';
+            position: absolute; top: 3px; left: 3px;
+            width: 16px; height: 16px;
+            background: var(--text); border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        [data-theme="light"] .theme-toggle::after { transform: translateX(20px); }
+        .back-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            padding: 7px 14px; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 1px; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase;
+        }
+        .back-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 52px 24px 80px;
+            position: relative; z-index: 1;
+        }
+        .page-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 52px; letter-spacing: 10px;
+            color: var(--text); margin-bottom: 6px; line-height: 1;
+        }
+        .page-sub { font-size: 14px; color: var(--text2); margin-bottom: 36px; }
+
+        .lang-tabs { display: flex; gap: 8px; margin-bottom: 28px; }
+        .lang-tab {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            padding: 8px 20px; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px; font-weight: 700;
+            cursor: pointer; letter-spacing: 1px;
+            transition: all 0.2s; text-transform: uppercase;
+        }
+        .lang-tab:hover { border-color: var(--accent); color: var(--accent); }
+        .lang-tab.active {
+            background: linear-gradient(135deg, #0066dd, #0088ff);
+            border-color: transparent; color: #fff;
+        }
+
+        .faq-block { display: none; flex-direction: column; gap: 10px; animation: fadeIn 0.3s ease both; }
+        .faq-block.show { display: flex; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .faq-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .faq-item:hover { border-color: var(--border-glow); }
+        .faq-q {
+            padding: 16px 20px;
+            font-size: 13.5px; font-weight: 600;
+            cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            color: var(--text); transition: background 0.2s; gap: 12px;
+        }
+        .faq-q:hover { background: var(--card2); }
+        .faq-q.open  { color: var(--accent); }
+        .faq-q .arrow { color: var(--text3); transition: transform 0.3s; font-size: 18px; flex-shrink: 0; }
+        .faq-q.open .arrow { transform: rotate(180deg); color: var(--accent); }
+        .faq-a {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.25s;
+            padding: 0 20px;
+            font-size: 13px; color: var(--text2); line-height: 1.8;
+            border-top: 0px solid var(--border);
+        }
+        .faq-a.open { max-height: 400px; padding: 0 20px 18px; border-top-width: 1px; }
+        .faq-a code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            padding: 2px 6px; border-radius: 4px;
+            color: var(--accent);
+        }
+
+        .support-card {
+            margin-top: 40px;
+            background: var(--card);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px; padding: 28px;
+            display: flex; align-items: center; gap: 20px;
+        }
+        .support-icon { font-size: 36px; flex-shrink: 0; }
+        .support-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .support-body { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+        /* Premium glass refresh */
+        :root[data-theme="dark"] {
+            --bg: #08060f; --panel: rgba(18,14,29,0.72); --card: rgba(25,19,37,0.52); --card2: rgba(33,24,48,0.64);
+            --border: rgba(255,255,255,0.14); --border-glow: rgba(255,71,126,0.38);
+            --text: #f7f3ff; --text2: #c2b8d2; --text3: #81718f;
+            --accent: #ff477e; --accent-dim: rgba(255,71,126,0.15); --violet: #8b5cf6; --cyan: #1ee7ff;
+        }
+        :root[data-theme="light"] {
+            --bg: #f8f6fb; --panel: rgba(255,255,255,0.74); --card: rgba(255,255,255,0.66); --card2: rgba(246,241,252,0.82);
+            --border: rgba(47,34,66,0.12); --border-glow: rgba(210,47,102,0.28);
+            --text: #1b1426; --text2: #62566f; --text3: #9a8ca8;
+            --accent: #d92f68; --accent-dim: rgba(217,47,104,0.12); --violet: #7353d8; --cyan: #008fa6;
+        }
+        ::-webkit-scrollbar { width: 9px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(255,71,126,0.55), rgba(139,92,246,0.42), rgba(30,231,255,0.28));
+            border: 2px solid transparent;
+            border-radius: 999px;
+            background-clip: content-box;
+            box-shadow: inset 0 0 9px rgba(255,255,255,0.24);
+        }
+        body {
+            background:
+                radial-gradient(ellipse 78% 55% at 85% 5%, rgba(255,71,126,0.24), transparent 45%),
+                radial-gradient(ellipse 72% 65% at 10% 92%, rgba(139,92,246,0.20), transparent 48%),
+                var(--bg);
+        }
+        [data-theme="light"] body {
+            background:
+                radial-gradient(ellipse 78% 55% at 85% 5%, rgba(255,71,126,0.14), transparent 45%),
+                radial-gradient(ellipse 72% 65% at 10% 92%, rgba(139,92,246,0.11), transparent 48%),
+                var(--bg);
+        }
+        body::before {
+            background-image:
+                linear-gradient(rgba(255,71,126,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139,92,246,0.035) 1px, transparent 1px);
+        }
+        .header,
+        .faq-item,
+        .support-card,
+        .theme-toggle,
+        .back-btn,
+        .lang-tab {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.035)),
+                var(--card);
+            border-color: var(--border);
+            box-shadow:
+                0 22px 64px rgba(0,0,0,0.26),
+                inset 0 1px 0 rgba(255,255,255,0.16);
+            backdrop-filter: blur(24px) saturate(165%);
+            -webkit-backdrop-filter: blur(24px) saturate(165%);
+        }
+        .header {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05)),
+                var(--panel);
+        }
+        [data-theme="light"] .header,
+        [data-theme="light"] .faq-item,
+        [data-theme="light"] .support-card,
+        [data-theme="light"] .theme-toggle,
+        [data-theme="light"] .back-btn,
+        [data-theme="light"] .lang-tab {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.88), rgba(255,255,255,0.48)),
+                rgba(255,255,255,0.58);
+            border-color: rgba(255,255,255,0.78);
+        }
+        .header::after {
+            background: linear-gradient(90deg, transparent, var(--accent), var(--violet), var(--cyan), transparent);
+            opacity: 0.56;
+        }
+        .logo,
+        .page-title {
+            background: linear-gradient(135deg, var(--text) 0%, var(--accent) 42%, var(--violet) 74%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        [data-theme="light"] .logo,
+        [data-theme="light"] .page-title {
+            background: linear-gradient(135deg, #1b1426 0%, var(--accent) 42%, var(--violet) 74%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo-badge {
+            color: var(--accent);
+            background: linear-gradient(135deg, var(--accent-dim), rgba(139,92,246,0.14));
+            border-color: var(--border-glow);
+            border-radius: 999px;
+        }
+        .theme-toggle::after {
+            background: linear-gradient(145deg, #ffffff, #ffe6ef 46%, #decfff);
+            box-shadow: 0 4px 14px rgba(255,71,126,0.26), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        .back-btn:hover,
+        .lang-tab:hover,
+        .faq-q.open {
+            color: var(--accent);
+        }
+        .lang-tab.active {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 36%),
+                linear-gradient(135deg, #ff3f7f 0%, #8b5cf6 56%, #1ee7ff 100%);
+            box-shadow: 0 12px 34px rgba(255,71,126,0.24);
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <a class="logo" href="index.html">MinX <span class="logo-badge">EV</span></a>
+        <div class="header-right">
+            <button class="theme-toggle" onclick="toggleTheme()"></button>
+            <button class="back-btn" onclick="window.location.href='index.html'">← Back</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">FAQ</h1>
+        <p class="page-sub">Frequently asked questions about MinX EV Intelligence</p>
+
+        <div class="lang-tabs" role="tablist">
+            <button class="lang-tab active" onclick="showLang('en', this)">English</button>
+            <button class="lang-tab" onclick="showLang('ta', this)">தமிழ்</button>
+            <button class="lang-tab" onclick="showLang('hi', this)">हिंदी</button>
+        </div>
+
+        <!-- ENGLISH FAQ -->
+        <div class="faq-block show" id="faq-en">
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">What is MinX? <span class="arrow">⌄</span></div>
+                <div class="faq-a">MinX is an AI-powered EV intelligence platform built for Indian EV owners. It helps you track your battery, discover nearby charging stations, plan routes, and get answers from Gemini AI.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">How do I add my car? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Select your EV model from the dropdown, drag the battery slider, verify the estimated range, then click <strong>Save Car Profile</strong>. Settings are remembered between sessions.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">Why is the AI not responding? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Make sure <code>minx_app.py</code> is running. Open a terminal and run: <code>python minx_app.py</code>. The server starts on port 5000.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">How do I find the nearest charger? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Click <strong>📍 Find Charger</strong>. MinX uses your GPS to find the closest station and bounces its marker on the map. Click any ⚡ marker for details.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">Does voice input work? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Yes! Click the microphone icon and speak in English, Tamil, or Hindi. Requires Chrome, Edge, or Brave browser.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">How do I use Login / Auth? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Click <strong>Login</strong> in the navbar. You can sign in with Google, Facebook, or email. To enable real Firebase auth, update <code>firebase-config.js</code> with your credentials and uncomment the SDK tags in <code>index.html</code>.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">Which EVs are supported? <span class="arrow">⌄</span></div>
+                <div class="faq-a">MinX supports: MG Windsor EV, Tata Nexon EV, Mahindra BE 6, Tata Punch EV, Hyundai Creta EV, BYD Atto 3, Kia EV6, and MG ZS EV. More models coming soon.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">How do I switch themes? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Toggle the dark/light switch in the top-right corner. The map updates automatically and preference is saved.</div>
+            </div>
+        </div>
+
+        <!-- TAMIL FAQ -->
+        <div class="faq-block" id="faq-ta">
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">MinX என்றால் என்ன? <span class="arrow">⌄</span></div>
+                <div class="faq-a">MinX என்பது AI-இயக்கும் மின் வாகன புத்திசாலி தளம். மின்கலம் நிலை கண்காணிக்கவும், சார்ஜிங் நிலையம் கண்டுபிடிக்கவும், பாதை திட்டமிடவும் உதவுகிறது.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">என் கார் எப்படி சேர்ப்பது? <span class="arrow">⌄</span></div>
+                <div class="faq-a">Dropdown-இல் EV மாதிரியை தேர்ந்தெடுத்து, slider வலிக்கவும், "Save Car Profile" அழுத்தவும்.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">AI பதில் சொல்லவில்லை ஏன்? <span class="arrow">⌄</span></div>
+                <div class="faq-a"><code>minx_app.py</code> இயங்குகிறதா சரிபாருங்கள். Terminal திறந்து <code>python minx_app.py</code> இயக்கவும்.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">சார்ஜிங் நிலையம் எப்படி கண்டுபிடிப்பது? <span class="arrow">⌄</span></div>
+                <div class="faq-a"><strong>📍 Find Charger</strong> பொத்தானை அழுத்தவும். GPS மூலம் அருகில் உள்ள நிலையங்கள் காட்டப்படும்.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">குரல் உள்ளீடு வேலை செய்யுமா? <span class="arrow">⌄</span></div>
+                <div class="faq-a">ஆம்! Microphone சின்னத்தை அழுத்தி தமிழில் பேசுங்கள். Chrome அல்லது Edge தேவை.</div>
+            </div>
+        </div>
+
+        <!-- HINDI FAQ -->
+        <div class="faq-block" id="faq-hi">
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">MinX क्या है? <span class="arrow">⌄</span></div>
+                <div class="faq-a">MinX एक AI-संचालित EV इंटेलिजेंस प्लेटफॉर्म है। बैटरी ट्रैकिंग, चार्जिंग स्टेशन खोजने और रूट प्लानिंग में मदद करता है।</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">अपनी कार कैसे जोड़ें? <span class="arrow">⌄</span></div>
+                <div class="faq-a">ड्रॉपडाउन से EV मॉडल चुनें, बैटरी स्लाइडर सेट करें, और <strong>Save Car Profile</strong> दबाएं।</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">AI जवाब क्यों नहीं दे रहा? <span class="arrow">⌄</span></div>
+                <div class="faq-a">सुनिश्चित करें <code>minx_app.py</code> चल रहा है। Terminal में <code>python minx_app.py</code> चलाएं।</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">निकटतम चार्जर कैसे खोजें? <span class="arrow">⌄</span></div>
+                <div class="faq-a"><strong>📍 Find Charger</strong> बटन दबाएं। GPS से पास के स्टेशन मानचित्र पर दिखेंगे।</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q" onclick="toggle(this)" tabindex="0">थीम कैसे बदलें? <span class="arrow">⌄</span></div>
+                <div class="faq-a">नेवबार में डार्क/लाइट टॉगल करें। मानचित्र स्वचालित रूप से बदलता है।</div>
+            </div>
+        </div>
+
+        <div class="support-card">
+            <div class="support-icon">🛠️</div>
+            <div>
+                <div class="support-title">Still need help?</div>
+                <div class="support-body">
+                    Check that <code style="font-family:monospace;background:var(--card2);padding:1px 5px;border-radius:4px;font-size:12px">minx_app.py</code> is running for AI features.
+                    Voice input requires Chrome or Edge. GPS must be allowed for charger search.
+                    Firebase credentials required for real auth — see
+                    <code style="font-family:monospace;background:var(--card2);padding:1px 5px;border-radius:4px;font-size:12px">firebase-config.js</code>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+function toggle(el) {
+    const isOpen = el.classList.contains('open');
+    document.querySelectorAll('.faq-q.open').forEach(q => {
+        q.classList.remove('open');
+        q.nextElementSibling.classList.remove('open');
+    });
+    if (!isOpen) {
+        el.classList.add('open');
+        el.nextElementSibling.classList.add('open');
+    }
+}
+
+function showLang(lang, tab) {
+    document.querySelectorAll('.faq-block').forEach(b => b.classList.remove('show'));
+    document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('faq-' + lang).classList.add('show');
+    tab.classList.add('active');
+}
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('minx_theme', next);
+}
+
+(function() {
+    const saved = localStorage.getItem('minx_theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+</script>
+</body>
+</html>

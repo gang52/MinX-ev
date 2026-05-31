@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinX Live Map</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDMAJJvk9Z-61tMkJf0mbHUw9cBZg59Tdk&libraries=places&callback=initMap" async defer></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background:
+                radial-gradient(circle at 82% 4%, rgba(0,80,190,0.40), transparent 34%),
+                radial-gradient(circle at 8% 92%, rgba(0,180,255,0.30), transparent 30%),
+                #050b14;
+            font-family: 'DM Sans', Arial, sans-serif;
+            overflow: hidden;
+        }
+        #map { width: 100%; height: 100dvh; min-height: 100vh; position: relative; }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px; left: 20px;
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04)),
+                rgba(6,12,22,0.68);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 22px;
+            padding: 16px 20px;
+            color: #e8edf5;
+            font-size: 12px;
+            max-width: 320px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 20px 56px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.18);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            animation: slideUp 0.3s ease both;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: none; }
+        }
+        #info-panel::before {
+            content: '';
+            display: block;
+            height: 2px;
+            background: linear-gradient(90deg, #0044ff, #0088ff, #00ccff);
+            border-radius: 2px;
+            margin-bottom: 12px;
+        }
+        .info-title {
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 10px;
+            color: #0088ff;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .info-title::before { content: '⚡'; font-size: 12px; }
+        .info-body { color: #9aadc4; line-height: 1.8; }
+        .info-body strong { color: #e8edf5; }
+        .info-close {
+            position: absolute;
+            top: 12px; right: 12px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            color: #5a6e84;
+            cursor: pointer;
+            padding: 2px 8px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .info-close:hover { border-color: #0088ff; color: #0088ff; }
+
+        #station-count {
+            position: absolute;
+            top: 14px; left: 50%;
+            transform: translateX(-50%);
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04)),
+                rgba(6,12,22,0.64);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 999px;
+            padding: 5px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: #5a6e84;
+            text-transform: uppercase;
+            pointer-events: none;
+            box-shadow: 0 16px 42px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.16);
+            backdrop-filter: blur(22px) saturate(155%);
+            -webkit-backdrop-filter: blur(22px) saturate(155%);
+        }
+
+        body.light { background: #f0f4f8; }
+        body.light #info-panel {
+            background: rgba(255,255,255,0.97);
+            border-color: rgba(0,102,204,0.2);
+            color: #0d1520;
+        }
+        body.light .info-body { color: #5a6e84; }
+        body.light .info-body strong { color: #0d1520; }
+        body.light #station-count {
+            background: rgba(255,255,255,0.95);
+            border-color: rgba(0,102,204,0.2);
+            color: #5a6e84;
+        }
+        @media (max-width: 760px) {
+            #station-count {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                transform: none;
+                text-align: center;
+                font-size: 10px;
+                padding: 6px 12px;
+            }
+            #info-panel {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                max-width: none;
+                padding: 14px 16px;
+                font-size: 12px;
+            }
+        }
+
+        /* Premium map glass and live car motion */
+        body {
+            background:
+                radial-gradient(circle at 82% 4%, rgba(255,71,126,0.30), transparent 34%),
+                radial-gradient(circle at 8% 92%, rgba(139,92,246,0.26), transparent 32%),
+                #08060f;
+        }
+        #map::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(90deg, rgba(8,6,15,0.14), transparent 24%, transparent 76%, rgba(8,6,15,0.18)),
+                linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%);
+        }
+        #info-panel,
+        #station-count {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.045)),
+                rgba(12,9,20,0.62);
+            border-color: rgba(255,255,255,0.17);
+            color: #f7f3ff;
+            box-shadow: 0 18px 48px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+        #info-panel::before {
+            background: linear-gradient(90deg, #ff477e, #8b5cf6, #1ee7ff);
+        }
+        .info-title {
+            color: #ff8ab1;
+        }
+        .info-body { color: #c2b8d2; }
+        .info-body strong { color: #f7f3ff; }
+        .info-close {
+            border-color: rgba(255,255,255,0.14);
+            border-radius: 999px;
+            color: #c2b8d2;
+            background: rgba(255,255,255,0.04);
+        }
+        .info-close:hover {
+            border-color: #ff477e;
+            color: #ff8ab1;
+        }
+        #station-count {
+            color: #c2b8d2;
+            z-index: 120;
+        }
+        body.light {
+            background:
+                radial-gradient(circle at 82% 4%, rgba(255,71,126,0.16), transparent 34%),
+                radial-gradient(circle at 8% 92%, rgba(139,92,246,0.13), transparent 32%),
+                #f8f6fb;
+        }
+        body.light #map::after {
+            background:
+                linear-gradient(90deg, rgba(255,255,255,0.20), transparent 24%, transparent 76%, rgba(255,255,255,0.18)),
+                linear-gradient(180deg, rgba(255,255,255,0.20), transparent 24%);
+        }
+        body.light #info-panel,
+        body.light #station-count {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.86), rgba(255,255,255,0.46)),
+                rgba(255,255,255,0.62);
+            border-color: rgba(255,255,255,0.78);
+            color: #1b1426;
+        }
+        body.light .info-body { color: #62566f; }
+        body.light .info-body strong { color: #1b1426; }
+
+        .map-traffic-layer {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0.90;
+            mix-blend-mode: screen;
+        }
+        body.light .map-traffic-layer {
+            mix-blend-mode: normal;
+            opacity: 0.72;
+        }
+        .map-car {
+            position: absolute;
+            width: clamp(30px, 3.6vw, 48px);
+            height: clamp(14px, 1.65vw, 22px);
+            border-radius: 999px 12px 12px 999px;
+            background:
+                radial-gradient(circle at 24% 104%, rgba(3,4,10,0.94) 0 2px, transparent 2.8px),
+                radial-gradient(circle at 73% 104%, rgba(3,4,10,0.94) 0 2px, transparent 2.8px),
+                linear-gradient(90deg, rgba(255,255,255,0.72) 0 10%, transparent 10% 16%),
+                linear-gradient(135deg, #ff477e, #8b5cf6 58%, #1ee7ff);
+            box-shadow:
+                0 0 22px rgba(255, 71, 126, 0.38),
+                0 0 36px rgba(139, 92, 246, 0.20),
+                inset 0 1px 0 rgba(255,255,255,0.42);
+        }
+        .map-car::before {
+            content: '';
+            position: absolute;
+            inset: 3px 11px 3px 10px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.58), rgba(255,255,255,0.12));
+        }
+        .map-car::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            width: 16px;
+            height: 2px;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(30,231,255,0.86), transparent);
+            box-shadow: 0 0 14px rgba(30,231,255,0.62);
+        }
+        .map-car-one { left: -10%; top: 72%; animation: mapDriveOne 12s linear infinite; }
+        .map-car-two { left: 108%; top: 22%; animation: mapDriveTwo 15s linear infinite 2.2s; }
+        .map-car-three { left: -12%; top: 46%; transform: scale(0.82); animation: mapDriveThree 18s linear infinite 4s; }
+        @keyframes mapDriveOne {
+            0% { left: -12%; top: 74%; transform: rotate(-21deg) scale(0.92); opacity: 0; }
+            10% { opacity: 0.92; }
+            45% { left: 44%; top: 47%; transform: rotate(-18deg) scale(1); }
+            85% { opacity: 0.92; }
+            100% { left: 110%; top: 18%; transform: rotate(-16deg) scale(0.94); opacity: 0; }
+        }
+        @keyframes mapDriveTwo {
+            0% { left: 108%; top: 24%; transform: rotate(161deg) scale(0.78); opacity: 0; }
+            12% { opacity: 0.72; }
+            48% { left: 58%; top: 42%; transform: rotate(160deg) scale(0.86); }
+            88% { opacity: 0.72; }
+            100% { left: -14%; top: 72%; transform: rotate(156deg) scale(0.78); opacity: 0; }
+        }
+        @keyframes mapDriveThree {
+            0% { left: -12%; top: 48%; transform: rotate(8deg) scale(0.68); opacity: 0; }
+            12% { opacity: 0.64; }
+            54% { left: 50%; top: 56%; transform: rotate(12deg) scale(0.78); }
+            88% { opacity: 0.64; }
+            100% { left: 112%; top: 70%; transform: rotate(14deg) scale(0.68); opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .map-car { animation: none; opacity: 0.35; }
+        }
+
+        /* Dark glossy red final tune */
+        body {
+            background:
+                radial-gradient(circle at 82% 4%, rgba(224,22,50,0.24), transparent 34%),
+                radial-gradient(circle at 8% 92%, rgba(109,44,255,0.18), transparent 32%),
+                #060407;
+        }
+        body.light {
+            background:
+                radial-gradient(circle at 82% 4%, rgba(185,8,32,0.12), transparent 34%),
+                radial-gradient(circle at 8% 92%, rgba(92,49,214,0.10), transparent 32%),
+                #fffafa;
+        }
+        #info-panel::before {
+            background: linear-gradient(90deg, #b90820, #e01632, #6d2cff);
+        }
+        .info-title {
+            color: #ff4b5f;
+        }
+        .map-traffic-layer {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="map" role="application" aria-label="Interactive EV map"></div>
+    <div id="station-count" aria-live="polite">⚡ India EV Stations</div>
+    <div id="info-panel" role="status" aria-live="polite">
+        <button class="info-close" onclick="hideInfo()">✕</button>
+        <div class="info-title" id="info-title">INFO</div>
+        <div class="info-body"  id="info-body"></div>
+    </div>
+
+<script>
+let map, directionsService, directionsRenderer, geocoder, placesService, userMarker, userCircle, previewMarker;
+let isDark = true;
+let stationMarkers = [];
+let stationCircles = [];
+let stationByKey = new Map();
+let liveSearchTimer = null;
+
+const MAP_COLORS = {
+    rose: '#e01632',
+    roseSoft: '#ff4b5f',
+    violet: '#6d2cff',
+    cyan: '#25d7ff',
+    green: '#32f5a9',
+    amber: '#ffc85c',
+};
+
+const EV_STATIONS = [
+    { name: 'Tata Power EV – Connaught Place', city: 'Delhi', lat: 28.6315, lng: 77.2167, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Statiq – Aerocity', city: 'Delhi', lat: 28.5562, lng: 77.1000, type: 'Fast DC', power: '60 kW', slots: 4 },
+    { name: 'ChargeZone – Cyber Hub', city: 'Gurugram', lat: 28.4950, lng: 77.0890, type: 'CCS2 Fast', power: '60 kW', slots: 6 },
+    { name: 'Tata Power EV – Noida Sector 18', city: 'Noida', lat: 28.5708, lng: 77.3261, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Jio-bp Pulse – Bandra Kurla Complex', city: 'Mumbai', lat: 19.0660, lng: 72.8675, type: 'Fast DC', power: '60 kW', slots: 6 },
+    { name: 'Tata Power EV – Phoenix Palladium', city: 'Mumbai', lat: 18.9946, lng: 72.8242, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'ChargeZone – Thane', city: 'Thane', lat: 19.2183, lng: 72.9781, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Pune Hinjewadi', city: 'Pune', lat: 18.5913, lng: 73.7389, type: 'Fast DC', power: '50 kW', slots: 4 },
+    { name: 'ChargeZone – Pune Wakad', city: 'Pune', lat: 18.5970, lng: 73.7640, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Ather Grid – Indiranagar', city: 'Bengaluru', lat: 12.9784, lng: 77.6408, type: 'Fast DC', power: '30 kW', slots: 3 },
+    { name: 'Tata Power EV – UB City', city: 'Bengaluru', lat: 12.9716, lng: 77.5951, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Zeon Charging – Electronic City', city: 'Bengaluru', lat: 12.8399, lng: 77.6770, type: 'CCS2 Ultra Fast', power: '120 kW', slots: 6 },
+    { name: 'Tata Power EV – Phoenix MarketCity', city: 'Chennai', lat: 12.9981, lng: 80.2186, type: 'Fast DC', power: '50 kW', slots: 4 },
+    { name: 'Zeon Charging – OMR Road', city: 'Chennai', lat: 12.8999, lng: 80.2270, type: 'CCS2 Ultra Fast', power: '120 kW', slots: 8 },
+    { name: 'Ather Grid – T. Nagar', city: 'Chennai', lat: 13.0418, lng: 80.2341, type: 'Fast DC', power: '30 kW', slots: 4 },
+    { name: 'Tata Power EV – Hitech City', city: 'Hyderabad', lat: 17.4435, lng: 78.3772, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Statiq – Gachibowli', city: 'Hyderabad', lat: 17.4401, lng: 78.3489, type: 'Fast DC', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Salt Lake', city: 'Kolkata', lat: 22.5726, lng: 88.4332, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'ChargeZone – New Town', city: 'Kolkata', lat: 22.5797, lng: 88.4795, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Ahmedabad SG Highway', city: 'Ahmedabad', lat: 23.0396, lng: 72.5087, type: 'Fast DC', power: '50 kW', slots: 4 },
+    { name: 'ChargeZone – Vadodara', city: 'Vadodara', lat: 22.3072, lng: 73.1812, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Jaipur MI Road', city: 'Jaipur', lat: 26.9124, lng: 75.7873, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Statiq – Chandigarh', city: 'Chandigarh', lat: 30.7333, lng: 76.7794, type: 'Fast DC', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Lucknow Gomti Nagar', city: 'Lucknow', lat: 26.8467, lng: 80.9462, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'ChargeZone – Kochi', city: 'Kochi', lat: 9.9312, lng: 76.2673, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Zeon Charging – Coimbatore', city: 'Coimbatore', lat: 11.0168, lng: 76.9558, type: 'CCS2 Ultra Fast', power: '120 kW', slots: 6 },
+    { name: 'Tata Power EV – Goa Panaji', city: 'Panaji', lat: 15.4909, lng: 73.8278, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'ChargeZone – Nagpur', city: 'Nagpur', lat: 21.1458, lng: 79.0882, type: 'CCS2 Fast', power: '60 kW', slots: 4 },
+    { name: 'Tata Power EV – Bhopal', city: 'Bhopal', lat: 23.2599, lng: 77.4126, type: 'DC/AC Public', power: '25-60 kW', slots: 4 },
+    { name: 'Statiq – Bhubaneswar', city: 'Bhubaneswar', lat: 20.2961, lng: 85.8245, type: 'Fast DC', power: '60 kW', slots: 4 },
+];
+
+const INDIA_CHARGER_SEARCH_HUBS = [
+    { lat: 28.6139, lng: 77.2090 }, { lat: 19.0760, lng: 72.8777 },
+    { lat: 12.9716, lng: 77.5946 }, { lat: 13.0827, lng: 80.2707 },
+    { lat: 17.3850, lng: 78.4867 }, { lat: 22.5726, lng: 88.3639 },
+    { lat: 23.0225, lng: 72.5714 }, { lat: 18.5204, lng: 73.8567 },
+    { lat: 26.9124, lng: 75.7873 }, { lat: 30.7333, lng: 76.7794 },
+    { lat: 26.8467, lng: 80.9462 }, { lat: 9.9312, lng: 76.2673 },
+    { lat: 11.0168, lng: 76.9558 }, { lat: 15.4909, lng: 73.8278 },
+    { lat: 21.1458, lng: 79.0882 }, { lat: 20.2961, lng: 85.8245 },
+];
+
+const DARK_STYLES = [
+    { elementType: 'geometry',           stylers: [{ color: '#090712' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#090712' }] },
+    { elementType: 'labels.text.fill',   stylers: [{ color: '#a99ab7' }] },
+    { featureType: 'road',               elementType: 'geometry',           stylers: [{ color: '#1a1424' }] },
+    { featureType: 'road.arterial',      elementType: 'geometry',           stylers: [{ color: '#261a31' }] },
+    { featureType: 'road.highway',       elementType: 'geometry',           stylers: [{ color: '#362044' }] },
+    { featureType: 'road.highway',       elementType: 'labels.text.fill',   stylers: [{ color: '#ff8ab1' }] },
+    { featureType: 'water',              elementType: 'geometry',           stylers: [{ color: '#070613' }] },
+    { featureType: 'water',              elementType: 'labels.text.fill',   stylers: [{ color: '#7adff0' }] },
+    { featureType: 'poi',                elementType: 'geometry',           stylers: [{ color: '#120d1a' }] },
+    { featureType: 'transit',            elementType: 'geometry',           stylers: [{ color: '#151021' }] },
+    { featureType: 'administrative',     elementType: 'geometry.stroke',    stylers: [{ color: '#31233e' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#c7bbd6' }] },
+];
+
+const LIGHT_STYLES = [
+    { elementType: 'geometry',           stylers: [{ color: '#f7f3fb' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+    { elementType: 'labels.text.fill',   stylers: [{ color: '#5f5570' }] },
+    { featureType: 'road',               elementType: 'geometry',           stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road.arterial',      elementType: 'geometry',           stylers: [{ color: '#ece3f6' }] },
+    { featureType: 'road.highway',       elementType: 'geometry',           stylers: [{ color: '#e5d7f2' }] },
+    { featureType: 'road.highway',       elementType: 'labels.text.fill',   stylers: [{ color: '#d92f68' }] },
+    { featureType: 'water',              elementType: 'geometry',           stylers: [{ color: '#dff7fb' }] },
+    { featureType: 'poi',                elementType: 'geometry',           stylers: [{ color: '#f0eaf8' }] },
+    { featureType: 'transit',            elementType: 'geometry',           stylers: [{ color: '#eee8f6' }] },
+    { featureType: 'administrative',     elementType: 'geometry.stroke',    stylers: [{ color: '#dacfe7' }] },
+];
+
+function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 22.9734, lng: 78.6569 },
+        zoom: 5,
+        styles: DARK_STYLES,
+        disableDefaultUI: false,
+        zoomControl: true,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: false,
+    });
+
+    directionsService  = new google.maps.DirectionsService();
+    geocoder = new google.maps.Geocoder();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        polylineOptions: {
+            strokeColor: MAP_COLORS.rose,
+            strokeWeight: 5,
+            strokeOpacity: 0.9,
+        },
+        suppressMarkers: false,
+    });
+    directionsRenderer.setMap(map);
+    placesService = new google.maps.places.PlacesService(map);
+
+    plotStations();
+    searchIndiaChargerHubs();
+    map.addListener('idle', scheduleVisibleChargerSearch);
+    applyTheme(localStorage.getItem('minx_map_theme') || localStorage.getItem('minx_theme') || 'dark');
+    window.addEventListener('message', handleParentMessage);
+}
+
+function handleParentMessage(event) {
+    const d = event.data;
+    if (!d) return;
+    if (d.userLocation) setUserMarker(d.userLocation, d.originLabel, d.userCar);
+    if (d.action === 'previewPlace' && d.location) previewPlace(d.location, d.label, d.kind);
+    if (d.action === 'route' && d.origin && d.destination) {
+        doRoute(d.origin, d.destination, d.originLabel, d.destinationLabel);
+    }
+    if (d.action === 'findCharger' && d.origin) findChargerFrom(d.origin, d.originLabel, d.userCar);
+    if (d.theme) applyTheme(d.theme);
+}
+
+function applyTheme(theme) {
+    isDark = theme === 'dark';
+    map.setOptions({ styles: isDark ? DARK_STYLES : LIGHT_STYLES });
+    document.body.className = isDark ? '' : 'light';
+    directionsRenderer?.setOptions({
+        polylineOptions: {
+            strokeColor: isDark ? MAP_COLORS.rose : '#d92f68',
+            strokeWeight: 5,
+            strokeOpacity: 0.9,
+        },
+    });
+}
+
+function plotStations() {
+    EV_STATIONS.forEach(station => {
+        const marker = new google.maps.Marker({
+            position: { lat: station.lat, lng: station.lng },
+            map,
+            title: station.name,
+            icon: {
+                path: 'M 0,-10 L -4,0 L 0,0 L -4,10 L 4,-2 L 0,-2 Z',
+                fillColor: MAP_COLORS.rose,
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 1,
+                scale: 2,
+            },
+        });
+
+        new google.maps.Circle({
+            center: { lat: station.lat, lng: station.lng },
+            radius: 120,
+            map,
+            fillColor: MAP_COLORS.violet,
+            fillOpacity: 0.08,
+            strokeColor: MAP_COLORS.rose,
+            strokeOpacity: 0.25,
+            strokeWeight: 1,
+            clickable: false,
+        });
+
+        marker.addListener('click', () => {
+            showInfo(
+                station.name,
+                `<strong>Type:</strong> ${station.type}<br>
+                 <strong>Power:</strong> ${station.power}<br>
+                 <strong>Slots:</strong> ${station.slots} available<br>
+                 <strong>Status:</strong> <span style="color:${MAP_COLORS.green}">Online ✅</span>`
+            );
+        });
+    });
+
+    const badge = document.getElementById('station-count');
+    if (badge) badge.textContent = `⚡ ${EV_STATIONS.length} Stations · Chennai`;
+}
+
+function plotStations() {
+    const seedStations = [...EV_STATIONS];
+    EV_STATIONS.length = 0;
+    seedStations.forEach(station => upsertStation(station, 'Seed'));
+    refreshStationBadge();
+}
+
+function getStationKey(station) {
+    return `${station.name.toLowerCase().replace(/\s+/g, '-')}:${station.lat.toFixed(4)},${station.lng.toFixed(4)}`;
+}
+
+function upsertStation(station, source = 'Live') {
+    if (!Number.isFinite(station.lat) || !Number.isFinite(station.lng) || !station.name) return;
+    const key = getStationKey(station);
+    if (stationByKey.has(key)) return;
+
+    station.source = source;
+    stationByKey.set(key, station);
+    EV_STATIONS.push(station);
+    plotStation(station);
+    refreshStationBadge();
+}
+
+function plotStation(station) {
+    const marker = new google.maps.Marker({
+        position: { lat: station.lat, lng: station.lng },
+        map,
+        title: station.name,
+        icon: {
+            path: 'M 0,-10 L -4,0 L 0,0 L -4,10 L 4,-2 L 0,-2 Z',
+            fillColor: station.source === 'Live' ? MAP_COLORS.green : MAP_COLORS.rose,
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 1,
+            scale: 2,
+        },
+    });
+
+    const circle = new google.maps.Circle({
+        center: { lat: station.lat, lng: station.lng },
+        radius: station.source === 'Live' ? 90 : 120,
+        map,
+        fillColor: station.source === 'Live' ? MAP_COLORS.green : MAP_COLORS.violet,
+        fillOpacity: 0.08,
+        strokeColor: station.source === 'Live' ? MAP_COLORS.green : MAP_COLORS.rose,
+        strokeOpacity: 0.25,
+        strokeWeight: 1,
+        clickable: false,
+    });
+
+    stationMarkers.push(marker);
+    stationCircles.push(circle);
+    marker.addListener('click', () => showInfo(station.name, stationInfoHtml(station)));
+}
+
+function stationInfoHtml(station) {
+    const city = station.city ? `<strong>City:</strong> ${escapeMapHtml(station.city)}<br>` : '';
+    const source = station.source === 'Live' ? 'Google Places live result' : 'India seed network';
+    const rating = station.rating ? `<br><strong>Rating:</strong> ${escapeMapHtml(station.rating)}` : '';
+    const address = station.address ? `<br><strong>Address:</strong> ${escapeMapHtml(station.address)}` : '';
+    const liveStatus = station.openNow === true ? 'Open now' : station.openNow === false ? 'May be closed' : 'Mapped';
+    return `${city}
+        <strong>Type:</strong> ${escapeMapHtml(station.type || 'EV charging station')}<br>
+        <strong>Power:</strong> ${escapeMapHtml(station.power || 'Check station')}<br>
+        <strong>Slots:</strong> ${escapeMapHtml(String(station.slots || 'Check live'))}<br>
+        <strong>Source:</strong> ${source}${rating}${address}<br>
+        <strong>Status:</strong> <span style="color:${MAP_COLORS.green}">${liveStatus}</span>`;
+}
+
+function refreshStationBadge() {
+    const badge = document.getElementById('station-count');
+    if (!badge) return;
+    const liveCount = EV_STATIONS.filter(station => station.source === 'Live').length;
+    badge.textContent = `⚡ ${EV_STATIONS.length} India Stations${liveCount ? ` · ${liveCount} live` : ''}`;
+}
+
+function scheduleVisibleChargerSearch() {
+    clearTimeout(liveSearchTimer);
+    liveSearchTimer = setTimeout(() => {
+        const center = map?.getCenter();
+        if (center) searchNearbyChargers({ lat: center.lat(), lng: center.lng() });
+    }, 650);
+}
+
+function searchIndiaChargerHubs() {
+    INDIA_CHARGER_SEARCH_HUBS.forEach((hub, index) => {
+        setTimeout(() => searchNearbyChargers(hub, 50000), index * 320);
+    });
+}
+
+function searchNearbyChargers(location, radius = 50000) {
+    if (!placesService || !location) return;
+
+    placesService.nearbySearch(
+        {
+            location,
+            radius,
+            keyword: 'EV charging station',
+            type: 'electric_vehicle_charging_station',
+        },
+        (results, status) => {
+            if (status !== google.maps.places.PlacesServiceStatus.OK || !Array.isArray(results)) return;
+            results.forEach(place => {
+                const loc = place.geometry?.location;
+                if (!loc) return;
+                upsertStation({
+                    name: place.name || 'EV Charging Station',
+                    city: place.vicinity || '',
+                    address: place.vicinity || '',
+                    lat: loc.lat(),
+                    lng: loc.lng(),
+                    type: 'EV charging station',
+                    power: 'Check live',
+                    slots: 'Check live',
+                    rating: place.rating || '',
+                    openNow: place.opening_hours?.open_now,
+                }, 'Live');
+            });
+        }
+    );
+}
+
+function setUserMarker(loc, label = 'Your location', userCar = null) {
+    if (userMarker) userMarker.setMap(null);
+    if (userCircle) userCircle.setMap(null);
+
+    userMarker = new google.maps.Marker({
+        position: loc,
+        map,
+        title: label,
+        zIndex: 999,
+        icon: createCarMarkerIcon(),
+    });
+
+    userCircle = new google.maps.Circle({
+        center: loc,
+        radius: 250,
+        map,
+        fillColor: MAP_COLORS.cyan,
+        fillOpacity: 0.08,
+        strokeColor: MAP_COLORS.cyan,
+        strokeOpacity: 0.28,
+        strokeWeight: 1,
+        clickable: false,
+    });
+
+    map.panTo(loc);
+}
+
+function createCarMarkerIcon() {
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="82" height="58" viewBox="0 0 82 58">
+            <defs>
+                <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#ff4b5f"/>
+                    <stop offset="0.48" stop-color="#b90820"/>
+                    <stop offset="1" stop-color="#351019"/>
+                </linearGradient>
+                <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#e01632" flood-opacity="0.38"/>
+                </filter>
+            </defs>
+            <path d="M41 56 33 43h16L41 56Z" fill="#8f0718"/>
+            <path d="M13 35h56c3 0 5-2 5-5v-8c0-3-2-5-5-5h-8l-8-8H30l-8 8h-9c-3 0-5 2-5 5v8c0 3 2 5 5 5Z" fill="url(#shell)" filter="url(#glow)"/>
+            <path d="M27 17 33 11h16l6 6H27Z" fill="rgba(255,255,255,0.34)"/>
+            <path d="M16 23h49" stroke="rgba(255,255,255,0.36)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="24" cy="36" r="7" fill="#090407" stroke="#ff4b5f" stroke-width="2"/>
+            <circle cx="58" cy="36" r="7" fill="#090407" stroke="#ff4b5f" stroke-width="2"/>
+            <circle cx="24" cy="36" r="3" fill="#2b1117"/>
+            <circle cx="58" cy="36" r="3" fill="#2b1117"/>
+        </svg>`;
+    return {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+        scaledSize: new google.maps.Size(68, 48),
+        anchor: new google.maps.Point(34, 48),
+    };
+}
+
+function normalizeRoutePoint(point) {
+    if (!point) return null;
+    if (typeof point === 'string') return point;
+    if (Number.isFinite(point.lat) && Number.isFinite(point.lng)) {
+        return new google.maps.LatLng(point.lat, point.lng);
+    }
+    return null;
+}
+
+function resolveLocation(point, onSuccess, onError) {
+    if (!point) {
+        onError?.('Missing location');
+        return;
+    }
+    if (typeof point !== 'string') {
+        onSuccess({ lat: point.lat, lng: point.lng }, '');
+        return;
+    }
+    geocoder.geocode({ address: point }, (results, status) => {
+        if (status !== 'OK' || !results?.[0]) {
+            onError?.(`Could not find "${point}" (${status}).`);
+            return;
+        }
+        const loc = results[0].geometry.location;
+        onSuccess(
+            { lat: loc.lat(), lng: loc.lng() },
+            results[0].formatted_address || point
+        );
+    });
+}
+
+function doRoute(origin, destination, originLabel, destinationLabel) {
+    const routeOrigin = normalizeRoutePoint(origin);
+    const routeDestination = normalizeRoutePoint(destination);
+    if (!routeOrigin || !routeDestination) {
+        showInfo('Route Error', 'Enter a valid starting point and destination.');
+        return;
+    }
+    if (previewMarker) previewMarker.setMap(null);
+
+    directionsService.route(
+        {
+            origin: routeOrigin,
+            destination: routeDestination,
+            travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+            if (status !== 'OK') {
+                showInfo('Route Error', `Could not calculate route (${status}). Check the destination.`);
+                return;
+            }
+
+            directionsRenderer.setDirections(result);
+
+            const leg          = result.routes[0].legs[0];
+            const km           = Math.round(leg.distance.value / 1000);
+            const battEstimate = Math.min(100, Math.round(km * 0.15));
+
+            showInfo(
+                `Route → ${(destinationLabel || leg.end_address).split(',')[0]}`,
+                `<strong>Distance:</strong>  ${leg.distance.text}<br>
+                 <strong>Duration:</strong>  ${leg.duration.text}<br>
+                 <strong>Battery use:</strong> ~${battEstimate}%<br>
+                 <strong>From:</strong> ${(originLabel || leg.start_address).split(',')[0]}`
+            );
+        }
+    );
+}
+
+function findChargerFrom(origin, originLabel, userCar = null) {
+    resolveLocation(
+        origin,
+        loc => {
+            setUserMarker(loc, originLabel || 'Starting point', userCar);
+            searchNearbyChargers(loc, 50000);
+            setTimeout(() => highlightNearest(loc), 700);
+        },
+        message => showInfo('Location Error', message)
+    );
+}
+
+function previewPlace(loc, label, kind = 'destination') {
+    if (previewMarker) previewMarker.setMap(null);
+
+    previewMarker = new google.maps.Marker({
+        position: loc,
+        map,
+        title: label || 'Selected place',
+        zIndex: 998,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: kind === 'origin' ? MAP_COLORS.green : MAP_COLORS.amber,
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+        },
+    });
+
+    map.panTo(loc);
+    map.setZoom(Math.max(map.getZoom(), 14));
+    showInfo(
+        kind === 'origin' ? 'Starting Point' : 'Destination Preview',
+        `<strong>${escapeMapHtml(label || 'Selected place')}</strong><br>Ready for route planning.`
+    );
+}
+
+function highlightNearest(userLoc) {
+    let nearest = null;
+    let minDist = Infinity;
+
+    EV_STATIONS.forEach(station => {
+        const dist = distanceKm(userLoc, station);
+        if (dist < minDist) { minDist = dist; nearest = station; }
+    });
+
+    if (!nearest) return;
+
+    map.panTo({ lat: nearest.lat, lng: nearest.lng });
+    map.setZoom(15);
+
+    showInfo(
+        `Nearest: ${nearest.name}`,
+        `<strong>Type:</strong>   ${nearest.type}<br>
+         <strong>Power:</strong>  ${nearest.power}<br>
+         <strong>Slots:</strong>  ${nearest.slots} available<br>
+         <strong>Status:</strong> <span style="color:${MAP_COLORS.green}">Online ✅</span>`
+    );
+
+    const bounceMarker = new google.maps.Marker({
+        position: { lat: nearest.lat, lng: nearest.lng },
+        map,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 22,
+            fillColor: MAP_COLORS.rose,
+            fillOpacity: 0.15,
+            strokeColor: MAP_COLORS.rose,
+            strokeWeight: 2,
+        },
+        animation: google.maps.Animation.BOUNCE,
+    });
+
+    setTimeout(() => bounceMarker.setMap(null), 3000);
+}
+
+function distanceKm(a, b) {
+    const toRad = value => value * Math.PI / 180;
+    const r = 6371;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 2 * r * Math.asin(Math.sqrt(h));
+}
+
+function escapeMapHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function showInfo(title, bodyHtml) {
+    document.getElementById('info-title').textContent = title;
+    document.getElementById('info-body').innerHTML    = bodyHtml;
+    const panel = document.getElementById('info-panel');
+    panel.style.display = 'block';
+    panel.style.animation = 'none';
+    requestAnimationFrame(() => { panel.style.animation = ''; });
+}
+
+function hideInfo() {
+    document.getElementById('info-panel').style.display = 'none';
+}
+</script>
+</body>
+</html>
